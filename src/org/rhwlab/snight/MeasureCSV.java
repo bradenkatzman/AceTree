@@ -1,11 +1,6 @@
 package org.rhwlab.snight;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.Hashtable;
 
 public class MeasureCSV {
@@ -32,29 +27,42 @@ public class MeasureCSV {
 	 */
 	public MeasureCSV(String filepath) {
 		newLine();
-		
+
+		boolean auxInfoV1_opened = false;
 		try {
 			// initially, try to read AuxInfo file version 2.0
 			readAuxInfoV2(filepath);
-			
-			/*
-			 * Read the data from AuxInfo version 1.0 in addition to 2.0 in case there is failure in 2.0 scheme
-			 * Date implemented: 08/16/16
-			 * 
-			 * When 2.0 becomes the standard, this should be removed for optimization purposes
-			 */
-			readAuxInfoV1(filepath, true);
-			
 		} catch(IOException ioe) {
 			println("MeasureCSV File I/O Exception opening AuxInfo file version 2.0, trying version 1.0");
 			
 			// attempt opening the original file version 1.0
 			try {
 				readAuxInfoV1(filepath, false);
+				auxInfoV1_opened = true;
 			} catch(IOException e) {
 				println("MeasureCSV File I/O Exception opening AuxInfo file version 1.0");
+                auxInfoV1_opened = true; // do this just so that it won't run the same code below again
 			}
 		}
+
+		// WHILE V2 IS STILL EXPERIMENTAL:
+        // open up v1 as a fallback
+		 /*
+			 * Read the data from AuxInfo version 1.0 in addition to 2.0 in case there is failure in 2.0 scheme
+                * Date implemented: 08/16/16
+                *
+			 * When 2.0 becomes the standard, this should be removed for optimization purposes
+			 */
+		 if (!auxInfoV1_opened) {
+             try {
+                 System.out.println("Reading AuxInfo version 1 as backup to v2");
+                 readAuxInfoV1(filepath, true);
+             } catch (IOException e) {
+                 println("MeasureCSV File I/O Exception opening AuxInfo file version 1.0");
+             }
+         }
+
+
 	}
 	
 	/**
@@ -66,19 +74,20 @@ public class MeasureCSV {
 	 */
 	private void readAuxInfoV2(String filepath) throws IOException {
 		iMeasureHash = new Hashtable<>();
-		
+
+
 		iFilePath = filepath;
 		boolean namesRead = false;
 		String [] names = null;
 		
 		String AuxInfo_v2 = filepath + v2_file_ext;
-		println("MeasureCSV trying to open AuxInfo file: " + AuxInfo_v2);
 		
 		FileInputStream fis = new FileInputStream(AuxInfo_v2);
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis));
 		
 		if (br.ready()) {
 			String first_line = br.readLine();
+			System.out.println(first_line);
 			
 			populateHash(V2, false);
 			AuxInfo_v = 2;
